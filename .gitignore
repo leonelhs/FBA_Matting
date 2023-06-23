@@ -5,3 +5,11 @@
 
 *.pth
 .ipynb_checkpoints
+.idea/
+task_upload
+task_make
+
+FBA_Matting.egg-info/
+build/
+dist/
+

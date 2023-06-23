@@ -1,7 +1,11 @@
 import torch
 import torch.nn as nn
-from networks.resnet_GN_WS import ResNet
-import networks.layers_WS as L
+
+from .resnet_GN_WS import ResNet
+from . import layers_WS as L
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def build_model(weights):
     net_encoder = fba_encoder()
@@ -10,8 +14,8 @@ def build_model(weights):
 
     model = MattingModule(net_encoder, net_decoder)
 
-    if(weights != 'default'):
-        sd = torch.load(weights)
+    if weights != 'default':
+        sd = torch.load(weights, map_location=device)
         model.load_state_dict(sd, strict=True)
 
     return model
@@ -53,7 +57,6 @@ def fba_encoder():
 
     net_encoder.load_state_dict(net_encoder_sd)
     return net_encoder
-
 
 
 class ResnetDilated(nn.Module):
@@ -114,16 +117,15 @@ class ResnetDilated(nn.Module):
         return [x]
 
 
-
-
 def fba_fusion(alpha, img, F, B):
-    F = ((alpha * img + (1 - alpha**2) * F - alpha * (1 - alpha) * B))
-    B = ((1 - alpha) * img + (2 * alpha - alpha**2) * B - alpha * (1 - alpha) * F)
+    F = ((alpha * img + (1 - alpha ** 2) * F - alpha * (1 - alpha) * B))
+    B = ((1 - alpha) * img + (2 * alpha - alpha ** 2) * B - alpha * (1 - alpha) * F)
 
     F = torch.clamp(F, 0, 1)
     B = torch.clamp(B, 0, 1)
     la = 0.1
-    alpha = (alpha * la + torch.sum((img - B) * (F - B), 1, keepdim=True)) / (torch.sum((F - B) * (F - B), 1, keepdim=True) + la)
+    alpha = (alpha * la + torch.sum((img - B) * (F - B), 1, keepdim=True)) / (
+            torch.sum((F - B) * (F - B), 1, keepdim=True) + la)
     alpha = torch.clamp(alpha, 0, 1)
     return alpha, F, B
 
